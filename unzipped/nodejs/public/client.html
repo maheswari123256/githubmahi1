@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>💬 Socket Chat</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    #chatBox {
+      border: 1px solid #ccc; padding: 10px;
+      max-width: 500px; min-height: 300px;
+      overflow-y: auto; margin-bottom: 10px;
+    }
+    .msg { padding: 5px; margin: 4px; border-radius: 4px; }
+    .me { background: #d4fcd4; text-align: right; }
+    .other { background: #f1f1ff; text-align: left; }
+  </style>
+</head>
+<body>
+
+<h2>💬 Chat (User ↔ Delivery)</h2>
+<div id="chatBox"></div>
+<input type="text" id="msgInput" placeholder="Type your message" />
+<button onclick="sendMessage()">Send</button>
+
+<script>
+  const socket = io("http://localhost:5001");
+
+  const myUserId = prompt("Enter your MongoDB User ID:").trim();
+  const toUserId = prompt("Enter Receiver ID (User/Delivery):").trim();
+
+  const chatBox = document.getElementById("chatBox");
+  const msgInput = document.getElementById("msgInput");
+
+  socket.on("connect", () => {
+    console.log("✅ Connected as:", myUserId);
+    socket.emit("register", myUserId);
+  });
+
+  function appendMessage(from, text) {
+    const div = document.createElement("div");
+    div.className = "msg " + (from === myUserId ? "me" : "other");
+    div.textContent = (from === myUserId ? "You: " : "Friend: ") + text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function sendMessage() {
+    const text = msgInput.value.trim();
+    if (text) {
+      socket.emit("sendMessage", { from: myUserId, to: toUserId, text });
+      appendMessage(myUserId, text);
+      msgInput.value = "";
+    }
+  }
+
+  socket.on("receiveMessage", (data) => {
+    appendMessage(data.from, data.text);
+  });
+</script>
+
+</body>
+</html>
